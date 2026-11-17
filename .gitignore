@@ -1,0 +1,13 @@
+# python env + caches
+.venv/
+.venv_tmp/
+__pycache__/
+.ipynb_checkpoints/
+
+# training outputs - these get big (100s of eval videos + tb event files)
+# the few videos we actually talk about get copied into videos/ which IS tracked
+eval_videos/
+log_tb_bipedal/
+logs_bipedal/
+
+# saved agents are small (~150kb) so they are kept, see agents/
