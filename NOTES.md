@@ -106,6 +106,10 @@ Three candidate terms were piloted for 1M steps each, with the same seed and cod
 **The 500k checkpoint of the Task 2 agent fell on all 10 terrains (tilt 0.8 rad, falls after ~70 steps).**
 - That isn't "it hadn't learned yet". The learning curve shows it was already reaching the end before 200k. 500k just landed in one of the dips.
 - All three learning curves swing between about 364 (reached the end) and -100 (fell) many times. PPO with these settings on one environment is unstable, and policies collapse and recover.
+- The per-run panels (the thick line is a rolling mean over 10 evals) make the differences clearer:
+  - **Baseline** collapsed completely and fell on every eval from about 150k to 250k steps before recovering.
+  - **Task 1** learned fastest and most steadily, holding a rolling mean around 220-250 from 150k on. The stability/torque terms seem to have made learning more stable, even though the final 10-terrain test doesn't show it.
+  - **Task 2** rises and falls in long waves.
 - So the final agent you get depends a lot on *when* you stop. A fairer comparison would use the best checkpoint, or average over many checkpoints or seeds.
 
 ### For Task 3 ("which is best?")
