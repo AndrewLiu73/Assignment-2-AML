@@ -68,30 +68,30 @@ Things worth understanding (useful for reflections and the viva):
 
 All numbers are from the executed notebook (Task 3 table: 10 fixed terrains, seeds 100-109, plain env reward, deterministic policy). Training took 23 min (baseline), 25 min (Task 1) and 45 min (Task 2) on the laptop CPU.
 
-| agent | reached end | fell | base reward | speed | torque | jerkiness | hull tilt | bounce | airborne | hip corr | leg balance |
+| agent | reached end | fell | base reward | speed | torque | jerkiness | hull tilt (deg) | bounce | airborne | hip corr | leg balance |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| Baseline (all 0, 500k) | 50% | 50% | 214 | 2.57 | 2.91 | 0.76 | 0.46 | 0.21 | 0.44 | -0.59 | 0.46 |
-| Task 1 (1.0 / 0.5 / 0.05 / 0, 500k) | 40% | 60% | 202 | 3.22 | 2.66 | 0.73 | **0.09** | **0.09** | 0.35 | -0.17 | **0.22** |
-| Task 2 scissor @ 500k | 0% | 100% | -94 | - | 3.17 | 4.61 | 0.80 | - | - | - | - |
-| Task 2 scissor @ 1M | **80%** | 20% | **283** | 2.99 | 3.39 | **4.26** | 0.42 | 0.13 | 0.26 | -0.56 | **0.78** |
+| Baseline (all 0, 500k) | 50% | 50% | 214 | 2.57 | 2.91 | 0.76 | 26° | 0.21 | 0.44 | -0.59 | 0.46 |
+| Task 1 (1.0 / 0.5 / 0.05 / 0, 500k) | 40% | 60% | 202 | 3.22 | 2.66 | 0.73 | **5°** | **0.09** | 0.35 | -0.17 | **0.22** |
+| Task 2 scissor @ 500k | 0% | 100% | -94 | - | 3.17 | 4.61 | 46° | - | - | - | - |
+| Task 2 scissor @ 1M | **80%** | 20% | **283** | 2.99 | 3.39 | **4.26** | 24° | 0.13 | 0.26 | -0.56 | **0.78** |
 
 ### How the Task 2 term was chosen
 Three candidate terms were piloted for 1M steps each, with the same seed and code as the notebook: "bounding" (forward distance while both feet are off the ground), "high knees" (forward distance with the swing thigh lifted past 0.5 rad), and "scissor" (forward distance while the hips swing in opposite directions).
 - Bounding looked almost identical to the baseline. The baseline is already airborne about 44% of the time (it's a bounding run, not a walk), so there was little left to change.
-- High knees did nothing visible to thigh lift. Every agent already pushes a hip to its joint limit (`hip_p95` ≈ 1.13 for all of them).
+- High knees did nothing visible to thigh lift. Every agent already pushes a hip to its joint limit (`hip_p95_deg` ≈ 63-65° for all of them).
 - Scissor changed the leg pattern the most, and it's the only one that doesn't rely on the unreliable contact flag. That's why it's in the notebook.
 
 ### What the outcomes mean
 
 **Baseline (plain env reward).**
-- The hull pitches a lot (mean tilt 0.46 rad, about 26°) and bounces (largest height std).
+- The hull pitches a lot (mean tilt about 26°) and bounces (largest height std).
 - One leg (hip 2) is held near its forward limit most of the time. The other swings between about -0.8 and 0, and there are long flight phases. Basically a lunging, bounding gait.
 - Nothing in the reward cares about posture, only x-distance and not touching the hull, so leaning far forward is "free" until it falls. It reaches the end half the time.
 
 **Task 1 (torque cost 1.0, stability 0.5, smoothness 0.05).**
-- The stability term worked: hull tilt dropped 5× (0.46 → 0.09) and bounce more than halved. In the video the body stays almost flat.
+- The stability term worked: hull tilt dropped 5× (26° → 5°) and bounce more than halved. In the video the body stays almost flat.
 - It also moves faster (3.2 vs 2.6 units/s) with a bit less torque (2.66 vs 2.91).
-- The way it stays level is surprising, though. The hip-angle plot shows hip 1 **locked at the joint limit (1.1 rad) the whole episode**: one leg is held stiffly forward like a prop/ski, and the other leg does all the stepping with short quick hops. That's why leg balance is 0.22 and hip correlation is near 0.
+- The way it stays level is surprising, though. The hip-angle plot shows hip 1 **locked at the joint limit (1.1 rad = 63°) the whole episode**: one leg is held stiffly forward like a prop/ski, and the other leg does all the stepping with short quick hops. That's why leg balance is 0.22 and hip correlation is near 0.
 - The optimiser found the cheapest way to satisfy "keep the hull level", and that was a strange, not-very-natural gait. It's a good example of a reward getting what you asked for rather than what you meant.
 - The smoothness weight (0.05) barely changed jerkiness (0.73 vs 0.76). At that weight it's only about -0.04 per step, too small to matter next to the rest.
 - Success was 40% vs the baseline's 50%. With 10 episodes and one seed, that difference is within noise. The posture change is the real effect.
@@ -100,10 +100,10 @@ Three candidate terms were piloted for 1M steps each, with the same seed and cod
 - The intended effect happened: both legs now share the work (leg balance 0.78, the most even of all agents), and the hips move in opposite directions (correlation -0.56).
 - It is the most reliable agent: 80% reach the end, highest base reward (283).
 - Reward hacking: jerkiness is 4.26, about 5.6× the baseline. The hip plot shows a sawtooth where the hip direction flips almost every step. The term pays for `-hip1_speed × hip2_speed`, i.e. for the hips *moving* in opposite directions, so the cheapest way to earn it is to vibrate them against each other very fast rather than take big strides. The reward measured hip *speed*, but "natural walking" is about hip *angle over a whole stride*. A version based on stride amplitude over a window (the template's `hip1_history`/`hip2_history` deques hint at this), or combined with the smoothness penalty, would probably fix it.
-- Tilt went back up to 0.42 because the stability weight was 0 here.
+- Tilt went back up to 24° because the stability weight was 0 here.
 - Airborne time is the lowest (0.26): the feet stay on the ground more and shuffle/vibrate.
 
-**The 500k checkpoint of the Task 2 agent fell on all 10 terrains (tilt 0.8 rad, falls after ~70 steps).**
+**The 500k checkpoint of the Task 2 agent fell on all 10 terrains (tilt about 46°, falls after ~70 steps).**
 - That isn't "it hadn't learned yet". The learning curve shows it was already reaching the end before 200k. 500k just landed in one of the dips.
 - All three learning curves swing between about 364 (reached the end) and -100 (fell) many times. PPO with these settings on one environment is unstable, and policies collapse and recover.
 - The per-run panels (the thick line is a rolling mean over 10 evals) make the differences clearer:
