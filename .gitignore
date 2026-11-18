@@ -11,3 +11,4 @@ log_tb_bipedal/
 logs_bipedal/
 
 # saved agents are small (~150kb) so they are kept, see agents/
+.idea/
